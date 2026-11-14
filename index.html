@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Votación 5 a 1</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+  <style>
+    :root {
+      color-scheme: light;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      --bg: #EDF1EF;
+      --surface: #FFFFFF;
+      --fg: #13201D;
+      --muted: #566763;
+      --line: #D3DCD9;
+      --accent: #0E6B61;
+      --accent-fg: #FFFFFF;
+      --accent-soft: #D8EBE7;
+      --warn: #A94E17;
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0F1614; --surface: #172220; --fg: #E7EFEC; --muted: #93A5A0; --line: #2A3935;
+        --accent: #4CC2B2; --accent-fg: #06201C; --accent-soft: #1C3632; --warn: #E49A66;
+        color-scheme: dark;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg); color: var(--fg);
+      font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+      padding-block: 28px 48px;
+      padding-left: max(16px, env(safe-area-inset-left, 0px));
+      padding-right: max(16px, env(safe-area-inset-right, 0px));
+    }
+    .wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 24px; }
+    h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+    h1 { font-size: clamp(26px, 5vw, 38px); line-height: 1.1; letter-spacing: -0.01em; }
+    h2 { font-size: 18px; margin-bottom: 12px; }
+    .muted { color: var(--muted); }
+    .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 12px; }
+    .chip { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+    .chip.closed { background: transparent; color: var(--warn); box-shadow: inset 0 0 0 1px var(--warn); }
+    .note { margin: 12px 0 0; padding: 8px 12px; border-radius: 8px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); font-size: 13px; }
+    .cols { display: grid; gap: 28px; grid-template-columns: 1fr; align-items: start; }
+    @media (min-width: 880px) { .cols { grid-template-columns: 1fr 1fr; } }
+    .cols > section { min-width: 0; }
+    .panel { background: var(--surface); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); }
+    .empty { margin: 0; padding: 20px; color: var(--muted); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); background: var(--surface); }
+    .opts { display: grid; gap: 8px; }
+    .opt { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; padding: 12px 14px; }
+    .opt .name { font-weight: 500; min-width: 0; overflow-wrap: anywhere; flex: 1 1 140px; }
+    .pts { display: flex; gap: 6px; }
+    .pt {
+      width: 38px; height: 38px; border-radius: 50%; border: 0; cursor: pointer;
+      font: 600 15px var(--font-display); font-variant-numeric: tabular-nums;
+      background: var(--bg); color: var(--fg); box-shadow: inset 0 0 0 1.5px var(--line);
+    }
+    .pt:hover:not(:disabled) { box-shadow: inset 0 0 0 1.5px var(--accent); }
+    .pt.on { background: var(--accent); color: var(--accent-fg); box-shadow: none; }
+    .pt.taken { color: var(--muted); opacity: 0.55; }
+    .pt:disabled { cursor: default; opacity: 0.5; }
+    .foot { display: grid; gap: 10px; margin-top: 14px; }
+    .foot .status { margin: 0; font-size: 13px; color: var(--muted); }
+    .foot .status.bad { color: var(--warn); }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button.act { font: 600 14px var(--font-body); padding: 9px 16px; border-radius: 8px; border: 0; cursor: pointer; background: var(--accent); color: var(--accent-fg); }
+    button.act.ghost { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
+    button.act:disabled { opacity: 0.45; cursor: default; }
+    #msg { font-size: 13px; color: var(--accent); }
+    #msg.bad { color: var(--warn); }
+    .res { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .res li { padding: 12px 14px; display: grid; grid-template-columns: 30px 1fr auto; gap: 4px 10px; align-items: baseline; }
+    .rank { font: 700 18px var(--font-display); color: var(--muted); font-variant-numeric: tabular-nums; }
+    .res li.lead .rank { color: var(--accent); }
+    .res .name { font-weight: 500; overflow-wrap: anywhere; min-width: 0; }
+    .res .total { font: 700 18px var(--font-display); font-variant-numeric: tabular-nums; }
+    .res .total small { font: 500 12px var(--font-body); color: var(--muted); margin-left: 3px; }
+    .track { grid-column: 2 / 4; height: 8px; border-radius: 99px; background: var(--bg); overflow: hidden; }
+    .fill { height: 100%; background: var(--accent); border-radius: 99px; }
+    .sub { grid-column: 2 / 4; font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 12px; font-variant-numeric: tabular-nums; }
+    .mine { color: var(--accent); font-weight: 600; }
+    details.panel { padding: 0; margin-bottom: 12px; }
+    details.panel > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; font-family: var(--font-display); }
+    .form { display: grid; gap: 12px; padding: 4px 16px 16px; }
+    .form label { display: grid; gap: 4px; font-size: 13px; font-weight: 500; }
+    .form input[type="text"], .form textarea { font: inherit; padding: 9px 10px; border-radius: 8px; border: 0; box-shadow: inset 0 0 0 1px var(--line); background: var(--bg); color: var(--fg); width: 100%; }
+    .form textarea { min-height: 110px; resize: vertical; }
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1 id="title">Votación</h1>
+    <p id="rule" class="muted" style="margin:8px 0 0"></p>
+    <div class="meta"><span id="status" class="chip" hidden></span><span id="voters" class="muted"></span></div>
+    <p id="note" class="note" hidden></p>
+  </header>
+  <details id="admin" class="panel">
+    <summary>⚙️ Configurar votación</summary>
+    <form id="adminForm" class="form" autocomplete="off">
+      <label for="titleIn">Título
+        <input id="titleIn" type="text" maxlength="80" placeholder="¿Cuál es tu favorito?">
+      </label>
+      <label for="optsIn">Opciones (una por línea)
+        <textarea id="optsIn" placeholder="Opción 1&#10;Opción 2&#10;Opción 3&#10;Opción 4&#10;Opción 5"></textarea>
+      </label>
+      <div class="actions">
+        <button class="act" id="adminSave" type="submit">Guardar configuración</button>
+        <button class="act ghost" id="adminReset" type="button">Restablecer datos</button>
+        <span id="adminMsg" class="muted" role="status"></span>
+      </div>
+    </form>
+  </details>
+  <div class="cols">
+    <section aria-labelledby="hb">
+      <h2 id="hb">Tu voto</h2>
+      <div id="ballot"></div>
+    </section>
+    <section aria-labelledby="hr">
+      <h2 id="hr">Resultados</h2>
+      <div id="results"></div>
+    </section>
+  </div>
+</main>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function h(tag, attrs) {
+    var e = document.createElement(tag);
+    var a = attrs || {};
+    Object.keys(a).forEach(function (k) {
+      var v = a[k];
+      if (k === "class") e.className = v;
+      else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, "");
+      else if (v !== false && v != null) e.setAttribute(k, v);
+    });
+    Array.prototype.slice.call(arguments, 2).forEach(function add(c) {
+      if (Array.isArray(c)) return c.forEach(add);
+      if (c == null || c === false) return;
+      e.append(c.nodeType ? c : document.createTextNode(String(c)));
+    });
+    return e;
+  }
+  // Persistencia local para GitHub Pages
+  var STORAGE_KEY_CONFIG = "vote_config_v1";
+  var STORAGE_KEY_VOTES = "vote_records_v1";
+  var STORAGE_KEY_UID = "vote_uid_v1";
+  var uid = localStorage.getItem(STORAGE_KEY_UID);
+  if (!uid) {
+    uid = "user_" + Math.random().toString(36).substring(2, 9);
+    localStorage.setItem(STORAGE_KEY_UID, uid);
+  }
+  var defaultConfig = {
+    title: "Votación 5 a 1",
+    options: [
+      { id: "o1", name: "Chiikawa" },
+      { id: "o2", name: "Hachiware" },
+      { id: "o3", name: "Usagi" },
+      { id: "o4", name: "Momonga" },
+      { id: "o5", name: "Rakko" }
+    ],
+    finalized: false
+  };
+  var config = JSON.parse(localStorage.getItem(STORAGE_KEY_CONFIG)) || defaultConfig;
+  var votes = JSON.parse(localStorage.getItem(STORAGE_KEY_VOTES)) || [];
+  var mySaved = votes.find(function (v) { return v.id === uid; }) || null;
+  var draft = mySaved ? Object.assign({}, mySaved.picks) : {};
+  var draftTouched = false, saving = false, msg = "", msgBad = false, lastFocus = null;
+  function saveStorage() {
+    localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
+    localStorage.setItem(STORAGE_KEY_VOTES, JSON.stringify(votes));
+  }
+  function opts() { return (config && config.options) || []; }
+  function values() { var k = Math.min(5, opts().length); var r = []; for (var i = 0; i < k; i++) r.push(5 - i); return r; }
+  function pointsWord(v) { return v === 1 ? "punto" : "puntos"; }
+  function sameMap(a, b) {
+    var ka = Object.keys(a || {}).sort(), kb = Object.keys(b || {}).sort();
+    if (ka.length !== kb.length) return false;
+    return ka.every(function (k, i) { return k === kb[i] && a[k] === b[k]; });
+  }
+  function cleanDraft() {
+    var ids = {}; opts().forEach(function (o) { ids[o.id] = 1; });
+    var vals = values();
+    Object.keys(draft).forEach(function (k) { if (!ids[k] || vals.indexOf(draft[k]) < 0) delete draft[k]; });
+  }
+  function setPoint(optId, v) {
+    draftTouched = true; msg = "";
+    if (draft[optId] === v) delete draft[optId];
+    else {
+      Object.keys(draft).forEach(function (k) { if (draft[k] === v) delete draft[k]; });
+      draft[optId] = v;
+    }
+    lastFocus = optId + "|" + v;
+    renderBallot();
+  }
+  function save() {
+    saving = true; msg = ""; renderBallot();
+    var idx = votes.findIndex(function (v) { return v.id === uid; });
+    var record = { id: uid, picks: Object.assign({}, draft), at: Date.now() };
+    if (idx >= 0) votes[idx] = record;
+    else votes.push(record);
+    mySaved = record;
+    saveStorage();
+    saving = false;
+    msg = "¡Voto guardado correctamente!"; msgBad = false;
+    renderAll();
+  }
+  function clearVote() {
+    saving = true; msg = ""; renderBallot();
+    votes = votes.filter(function (v) { return v.id !== uid; });
+    mySaved = null;
+    draft = {};
+    draftTouched = true;
+    saveStorage();
+    saving = false;
+    msg = "Tu voto se eliminó."; msgBad = false;
+    renderAll();
+  }
+  function renderHeader() {
+    $("title").textContent = (config && config.title) || "Votación";
+    var vals = values();
+    $("rule").textContent = vals.length
+      ? "Reparte " + vals.join(", ") + (vals.length > 1 ? " puntos" : " punto") + " entre distintas opciones. Cada valor se usa una sola vez."
+      : "Cada persona reparte 5, 4, 3, 2 y 1 punto entre las opciones.";
+    var st = $("status");
+    if (config && opts().length) {
+      st.hidden = false;
+      st.textContent = config.finalized ? "Finalizada" : "Abierta";
+      st.className = "chip" + (config.finalized ? " closed" : "");
+    } else {
+      st.hidden = true;
+    }
+    var n = tally().n;
+    $("voters").textContent = opts().length ? n + (n === 1 ? " voto recibido" : " votos recibidos") : "";
+  }
+  function renderBallot() {
+    var box = $("ballot");
+    if (!opts().length) {
+      box.replaceChildren(h("p", { class: "empty" }, "Agrega las opciones en «Configurar votación» para empezar."));
+      return;
+    }
+    cleanDraft();
+    var vals = values(), closed = !!config.finalized;
+    var used = Object.keys(draft).map(function (k) { return draft[k]; });
+    var missing = vals.filter(function (v) { return used.indexOf(v) < 0; });
+    var dirty = !sameMap(draft, mySaved && mySaved.picks);
+    var rows = opts().map(function (o) {
+      return h("div", { class: "opt panel" },
+        h("span", { class: "name" }, o.name),
+        h("div", { class: "pts", role: "group", "aria-label": "Puntos para " + o.name },
+          vals.map(function (v) {
+            var mine = draft[o.id] === v, taken = !mine && used.indexOf(v) >= 0;
+            return h("button", {
+              type: "button", "data-k": o.id + "|" + v,
+              class: "pt" + (mine ? " on" : "") + (taken ? " taken" : ""),
+              "aria-pressed": String(mine),
+              "aria-label": v + " " + pointsWord(v) + " para " + o.name,
+              disabled: closed,
+              onclick: function () { setPoint(o.id, v); }
+            }, String(v));
+          })));
+    });
+    var statusText, bad = false;
+    if (closed) { statusText = "La votación está cerrada."; bad = true; }
+    else if (missing.length) statusText = "Te falta asignar: " + missing.join(", ") + ".";
+    else if (mySaved && !dirty) statusText = "Tu voto está guardado.";
+    else statusText = "Todo repartido. Haz clic en guardar.";
+    var canSave = !closed && !saving && !missing.length && dirty;
+    var foot = h("div", { class: "foot" },
+      h("p", { class: "status" + (bad ? " bad" : ""), role: "status" }, statusText),
+      h("div", { class: "actions" },
+        h("button", { type: "button", class: "act", disabled: !canSave, onclick: save }, saving ? "Guardando…" : (mySaved ? "Actualizar mi voto" : "Guardar mi voto")),
+        (mySaved && !closed) ? h("button", { type: "button", class: "act ghost", disabled: saving, onclick: clearVote }, "Borrar mi voto") : null,
+        msg ? h("span", { id: "msg", class: msgBad ? "bad" : "" }, msg) : null));
+    box.replaceChildren(h("div", { class: "opts" }, rows), foot);
+    if (lastFocus) {
+      var f = box.querySelector('[data-k="' + lastFocus + '"]');
+      if (f && !f.disabled) f.focus();
+      lastFocus = null;
+    }
+  }
+  function tally() {
+    var t = {}, f = {}, n = 0;
+    opts().forEach(function (o) { t[o.id] = 0; f[o.id] = 0; });
+    votes.forEach(function (v) {
+      var any = false;
+      var picks = v.picks || {};
+      Object.keys(picks).forEach(function (id) {
+        var p = picks[id];
+        if (Object.prototype.hasOwnProperty.call(t, id) && Number.isInteger(p) && p >= 1 && p <= 5) {
+          t[id] += p; if (p === 5) f[id]++; any = true;
+        }
+      });
+      if (any) n++;
+    });
+    return { t: t, f: f, n: n };
+  }
+  function renderResults() {
+    var box = $("results");
+    if (!opts().length) { box.replaceChildren(h("p", { class: "empty" }, "Los resultados aparecen cuando haya opciones.")); return; }
+    var r = tally();
+    if (!r.n) { box.replaceChildren(h("p", { class: "empty" }, "Aún no hay votos registrados.")); return; }
+    var list = opts().map(function (o, i) { return { o: o, i: i, total: r.t[o.id], first: r.f[o.id] }; });
+    list.sort(function (a, b) { return b.total - a.total || a.i - b.i; });
+    var max = Math.max.apply(null, list.map(function (x) { return x.total; })) || 1;
+    var items = list.map(function (x, idx) {
+      var rank = idx === 0 ? 1 : (x.total === list[idx - 1].total ? list[idx - 1]._rank : idx + 1);
+      x._rank = rank;
+      var mine = mySaved && mySaved.picks && mySaved.picks[x.o.id];
+      return h("li", { class: "panel" + (rank === 1 ? " lead" : "") },
+        h("span", { class: "rank" }, String(rank)),
+        h("span", { class: "name" }, x.o.name),
+        h("span", { class: "total" }, String(x.total), h("small", null, "pts")),
+        h("div", { class: "track" }, h("div", { class: "fill", style: "width:" + Math.round(x.total / max * 100) + "%" })),
+        h("div", { class: "sub" },
+          h("span", null, x.first + (x.first === 1 ? " primer lugar" : " primeros lugares")),
+          mine ? h("span", { class: "mine" }, "Tu voto: " + mine) : null));
+    });
+    box.replaceChildren(h("ol", { class: "res" }, items));
+  }
+  function renderAll() { renderHeader(); renderBallot(); renderResults(); }
+  function populateAdmin() {
+    $("titleIn").value = (config && config.title) || "";
+    $("optsIn").value = opts().map(function (o) { return o.name; }).join("\n");
+  }
+  $("adminForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var existing = {}; opts().forEach(function (o) { existing[o.name] = o.id; });
+    var seen = {}, names = [];
+    $("optsIn").value.split("\n").forEach(function (l) {
+      var n = l.trim().slice(0, 80);
+      if (n && !seen[n]) { seen[n] = 1; names.push(n); }
+    });
+    names = names.slice(0, 30);
+    var msgEl = $("adminMsg");
+    if (names.length < 2) { msgEl.textContent = "Escribe al menos dos opciones."; return; }
+    var stamp = Date.now().toString(36);
+    var options = names.map(function (n, i) { return { id: existing[n] || ("o" + stamp + i), name: n }; });
+    config.title = $("titleIn").value.trim().slice(0, 80) || "Votación";
+    config.options = options;
+    saveStorage();
+    msgEl.textContent = "Configuración guardada.";
+    setTimeout(function() { msgEl.textContent = ""; }, 3000);
+    renderAll();
+  });
+  $("adminReset").addEventListener("click", function () {
+    if (confirm("¿Seguro que deseas restablecer la votación y borrar todos los votos?")) {
+      localStorage.removeItem(STORAGE_KEY_CONFIG);
+      localStorage.removeItem(STORAGE_KEY_VOTES);
+      config = Object.assign({}, defaultConfig);
+      votes = [];
+      mySaved = null;
+      draft = {};
+      populateAdmin();
+      renderAll();
+    }
+  });
+  populateAdmin();
+  renderAll();
+})();
+</script>
+</body>
+</html>
